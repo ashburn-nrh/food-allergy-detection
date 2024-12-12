@@ -6,6 +6,7 @@ const AllergyDetection: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Store image URL for preview
 
   const getEmailFromJWT = (): string => {
     const jwt = localStorage.getItem("jwt");
@@ -18,7 +19,19 @@ const AllergyDetection: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+
+      // Optional: You can restrict the file types if needed
+      if (!selectedFile.type.startsWith("image/")) {
+        alert("Please upload a valid image file.");
+        return;
+      }
+
+      setFile(selectedFile);
+
+      // Create a local URL for the image to display the preview
+      const objectUrl = URL.createObjectURL(selectedFile);
+      setImageUrl(objectUrl); // Set the image preview URL
     }
   };
 
@@ -37,11 +50,6 @@ const AllergyDetection: React.FC = () => {
       // First, get the user's allergies
       const allergyResponse = await axios.get(`http://127.0.0.1:8000/get-allergy/${email}`);
       const allergies = allergyResponse.data.allergy || []; // Ensure allergies is always an array
-
-      // Check if allergies is an array before proceeding
-      if (!Array.isArray(allergies)) {
-        throw new Error("Allergies data is not in the expected format");
-      }
 
       // Then, send the image for allergy detection
       const detectionResponse = await axios.post("http://127.0.0.1:8000/api/allergy_detection/", formData, {
@@ -85,11 +93,24 @@ const AllergyDetection: React.FC = () => {
       </header>
       <main className="flex flex-col items-center space-y-8">
         <h2 className="text-2xl font-bold">Allergy Detection</h2>
-        <input
-          type="file"
-          onChange={handleFileChange}
-          className="border p-2 rounded"
-        />
+
+        {/* Image Upload and Preview Section */}
+        <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-lg">
+          <input
+            type="file"
+            onChange={handleFileChange}
+            className="border p-2 rounded mb-4 w-full"
+          />
+
+          {/* Display image preview if file is uploaded */}
+          {imageUrl && (
+            <div className="mt-4 p-4 border border-gray-200 rounded-lg">
+              <img src={imageUrl} alt="Uploaded preview" className="w-full h-auto rounded-md" />
+            </div>
+          )}
+        </div>
+
+        {/* Submit button for allergy detection */}
         <button
           onClick={handleSubmit}
           className="bg-green-500 text-white px-4 py-2 rounded mt-4"

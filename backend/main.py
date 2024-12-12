@@ -87,12 +87,15 @@ class Profile(BaseModel):
 # API Endpoints for User Authentication and Profile Management
 @app.post("/signup")
 def signup(user: UserSignup):
+    print(user)
     if users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already exists.")
 
     hashed_password = hash_password(user.password)
     new_user = {"email": user.email, "password": hashed_password, "allergy": user.allergy}
+    print(new_user)
     users_collection.insert_one(new_user)
+    print("test")
 
     token = create_jwt(user.email, user.allergy)
     return {"jwt": token}
@@ -166,7 +169,7 @@ async def predict_allergens(ingredients: list[str]):
     return predicted_allergens
 
 # Nutrition Review API - OCR-based with Generative AI
-genai.configure(api_key="")  # Replace with your actual API key
+genai.configure(api_key="AIzaSyC5tFI_TwCtBQqRZykbWlbE6JZfsq_1-GM")  # Replace with your actual API key
 
 @app.post("/api/nutrition_review/")
 async def nutrition_review(file: UploadFile = File(...)):

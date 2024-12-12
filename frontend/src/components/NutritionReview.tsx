@@ -7,10 +7,24 @@ const NutritionReview: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>("");
   const [nutritionData, setNutritionData] = useState<any>(null); // Store parsed nutrition data here
+  const [loading, setLoading] = useState<boolean>(false); // Add loading state
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Store image URL for preview
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+
+      // Optional: You can restrict the file types if needed
+      if (!selectedFile.type.startsWith("image/")) {
+        alert("Please upload a valid image file.");
+        return;
+      }
+
+      setFile(selectedFile);
+
+      // Create a local URL for the image to display the preview
+      const objectUrl = URL.createObjectURL(selectedFile);
+      setImageUrl(objectUrl); // Set the image preview URL
     }
   };
 
@@ -23,6 +37,9 @@ const NutritionReview: React.FC = () => {
     const formData = new FormData();
     formData.append("file", file);
 
+    setLoading(true); // Set loading state to true when the request starts
+    setMessage(""); // Clear previous messages
+
     try {
       // Send image to API for nutrition review
       const response = await axios.post("http://127.0.0.1:8000/api/nutrition_review/", formData, {
@@ -32,11 +49,11 @@ const NutritionReview: React.FC = () => {
       });
 
       const data = response.data;
-      
+
       // Clean and parse the nutrition review from the response
       if (data.status === "success" && data.nutrition_review) {
         const cleanedData = JSON.parse(data.nutrition_review);  // Parse the review
-        console.log(cleanedData)
+        console.log(cleanedData);
         setNutritionData(cleanedData);  // Set the parsed data
         setMessage("Nutrition analysis completed successfully!");
       } else {
@@ -45,6 +62,8 @@ const NutritionReview: React.FC = () => {
     } catch (error) {
       console.error("Error in nutrition review", error);
       setMessage("An error occurred. Please try again.");
+    } finally {
+      setLoading(false); // Set loading state to false when the request completes
     }
   };
 
@@ -61,18 +80,30 @@ const NutritionReview: React.FC = () => {
 
       <main className="flex flex-col items-center space-y-8">
         <h2 className="text-2xl font-bold">Nutrition Review</h2>
-        
-        <input
-          type="file"
-          onChange={handleFileChange}
-          className="border p-2 rounded"
-        />
 
+        {/* Image Upload and Preview Section */}
+        <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-lg">
+          <input
+            type="file"
+            onChange={handleFileChange}
+            className="border p-2 rounded mb-4 w-full"
+          />
+
+          {/* Display image preview if file is uploaded */}
+          {imageUrl && (
+            <div className="mt-4 p-4 border border-gray-200 rounded-lg">
+              <img src={imageUrl} alt="Uploaded preview" className="w-full h-auto rounded-md" />
+            </div>
+          )}
+        </div>
+
+        {/* Submit button for nutrition review */}
         <button
           onClick={handleSubmit}
           className="bg-green-500 text-white px-4 py-2 rounded mt-4"
+          disabled={loading} // Disable button while loading
         >
-          Submit for Nutrition Review
+          {loading ? "Processing..." : "Submit for Nutrition Review"}
         </button>
 
         {message && <p className="mt-4 text-xl text-center">{message}</p>}
